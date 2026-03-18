@@ -1,0 +1,498 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Store model - represents a Shopify store
+model Store {
+  id                String   @id @default(uuid())
+  shopifyDomain     String   @unique
+  shopifyStoreId    String   @unique
+  accessToken       String
+  shopifyApiKey     String?  // Added for multi-app/organization support
+  shopifyApiSecret  String?  // Added for multi-app/organization support
+  scope             String
+  isActive          Boolean  @default(true)
+  installedAt       DateTime @default(now())
+  uninstalledAt     DateTime?
+  lastSyncAt        DateTime?
+  
+  // Store settings
+  storeName         String?
+  email             String?
+  currency          String   @default("USD")
+  timezone          String   @default("UTC")
+  primaryLocationId String?  // Added for inventory updates
+  
+  // Relationships
+  orders            Order[]
+  customers         Customer[]
+  products          Product[]
+  syncJobs          SyncJob[]
+  alerts            Alert[]
+  reports           Report[]
+  analyticsCache    AnalyticsCache[]
+  lineItems         OrderLineItem[] @relation("StoreLineItems")
+  settings          StoreSettings?
+  collections       Collection[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([shopifyDomain])
+  @@index([isActive])
+}
+
+// Registry for multi-organization/app support
+model AppRegistry {
+  id               String   @id @default(uuid())
+  shopDomain       String   @unique
+  apiKey           String
+  apiSecret        String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Store-specific settings
+model StoreSettings {
+  id                      String   @id @default(uuid())
+  storeId                 String   @unique
+  store                   Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  // Profit tracking settings
+  enableStoreLevelProfit  Boolean  @default(false)
+  enableProfitTracking    Boolean  @default(false)
+  defaultShippingCost     Float    @default(0)
+  defaultPackagingCost    Float    @default(0)
+  defaultCogsPercentage   Float    @default(0)
+  useProductCost          Boolean  @default(false)
+  codExtraCharge          Float    @default(0)
+  paymentGatewayFee       Float    @default(2.0)
+  returnCost              Float    @default(0)
+  rtoCost                 Float    @default(0)
+  marketingCost           Float    @default(0)
+  agencyFee               Float    @default(0)
+  shopifyBillingCost      Float    @default(0)
+  miscCost                Float    @default(0)
+
+  // Specific Ad Spend Categories
+  facebookSpend           Float    @default(0)
+  googleAdsSpend          Float    @default(0)
+  instagramSpend          Float    @default(0)
+  tiktokSpend             Float    @default(0)
+  emailMarketingSpend     Float    @default(0)
+
+  // Order Tag Mapping
+  cancelledTags           String[] @default([])
+  rtoTags                 String[] @default([])
+  returnTags              String[] @default([])
+  editedTags              String[] @default([])
+  
+  // Alert settings
+  enableAlerts            Boolean  @default(true)
+  cancellationThreshold   Float    @default(10)
+  refundThreshold         Float    @default(5)
+  alertCancellationSpike  Boolean  @default(true)
+  alertSalesDrop          Boolean  @default(true)
+  alertRefundSpike        Boolean  @default(true)
+  alertInventoryLow       Boolean  @default(true)
+  
+  // Data Sync
+  syncFrequency           String   @default("manual")
+
+  // Customer Intelligence
+  vipThreshold            Float    @default(1000)
+  churnDays               Int      @default(90)
+
+  // Currency & Tax
+  multiCurrency           Boolean  @default(false)
+  taxIncluded             Boolean  @default(true)
+  taxRate                 Float    @default(0)
+
+  // Report settings
+  enableScheduledReports  Boolean  @default(false)
+  reportFrequency         String   @default("weekly")
+  reportEmail             String?
+  autoExport              Boolean  @default(false)
+  
+  // UI preferences
+  theme                   String   @default("light")
+  defaultDateRange        String   @default("last_30_days")
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+// Order model
+model Order {
+  id                    String    @id @default(uuid())
+  storeId               String
+  store                 Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  shopifyOrderId        String
+  orderNumber           String
+  orderName             String
+  
+  // Financial data
+  totalPrice            Float
+  subtotalPrice         Float
+  totalDiscounts        Float
+  totalTax              Float
+  totalShipping         Float
+  netAmount             Float     // After discounts and refunds
+  
+  // Order details
+  currency              String
+  financialStatus       String    // paid, pending, refunded, partially_refunded
+  fulfillmentStatus     String?   // fulfilled, partial, unfulfilled
+  paymentGateway        String?
+  
+  // Shipping Address
+  shippingAddressCity     String?
+  shippingAddressProvince String?
+  shippingAddressCountry  String?
+  shippingAddressZip      String?
+  
+  // Customer info
+  customerId            String?
+  customer              Customer? @relation(fields: [customerId], references: [id])
+  customerEmail         String?
+  
+  // Tags and categorization
+  tags                  String[]  @default([])
+  isCancelled           Boolean   @default(false)
+  isRTO                 Boolean   @default(false)
+  isReturned            Boolean   @default(false) // Added for tracking returns
+  isFraud               Boolean   @default(false)
+  isEdited              Boolean   @default(false)
+  
+  // Cancellation data
+  cancelReason          String?
+  cancelledAt           DateTime?
+  
+  // Refund data
+  refundAmount          Float     @default(0)
+  refundedAt            DateTime?
+  
+  // Event dates for dashboard tracking
+  rtoAt                 DateTime? // Timestamp when RTO was detected
+  returnedAt            DateTime? // Timestamp when Return was detected
+  
+  // Dates
+  orderDate             DateTime
+  processedAt           DateTime?
+  closedAt              DateTime?
+  
+  // Line items
+  lineItems             OrderLineItem[]
+  
+  // Metadata
+  sourceUrl             String?
+  landingSite           String?
+  referringSite         String?
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([storeId, shopifyOrderId])
+  @@index([storeId, orderDate])
+  @@index([storeId, isCancelled])
+  @@index([storeId, isRTO])
+  @@index([storeId, isReturned])
+  @@index([customerId])
+  @@index([orderDate]) // Keep global index if needed, but usually storeId is first
+  
+  // High-Performance Indexes for Dashboard (Event Tracking)
+  @@index([storeId, cancelledAt])
+  @@index([storeId, rtoAt])
+  @@index([storeId, returnedAt])
+  @@index([storeId, refundedAt])
+  @@index([storeId, createdAt]) 
+  @@index([storeId, customerId])
+  @@index([storeId, financialStatus]) // 'order_status' equivalent
+  @@index([storeId, paymentGateway])  // Need to add this field if we want to index payment method
+}
+
+// Order line items
+model OrderLineItem {
+  id                String   @id @default(uuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Denormalized storeId for partitioning efficiency
+  storeId           String    // @default("temp") - In prod db migration this needs handling
+  store             Store     @relation("StoreLineItems", fields: [storeId], references: [id], onDelete: Cascade)
+  
+  productId         String?
+  product           Product? @relation(fields: [productId], references: [id])
+  
+  shopifyProductId  String?
+  shopifyVariantId  String?
+  
+  title             String
+  variantTitle      String?
+  sku               String?
+  
+  quantity          Int
+  price             Float
+  totalDiscount     Float    @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+// Customer model
+model Customer {
+  id                    String    @id @default(uuid())
+  storeId               String
+  store                 Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  shopifyCustomerId     String
+  email                 String?
+  firstName             String?
+  lastName              String?
+  phone                 String?
+  
+  // Customer metrics
+  totalSpent            Float     @default(0)
+  totalOrders           Int       @default(0)
+  averageOrderValue     Float     @default(0)
+  
+  // RFM Analysis
+  recencyDays           Int?      // Days since last order
+  frequency             Int       @default(0)
+  monetary              Float     @default(0)
+  rfmScore              Int?      // 1-5 score
+  
+  // Segmentation
+  segment               String?   // VIP, Regular, At-Risk, Lost
+  tags                  String?   // Store as comma-separated string for simplicity with some DBs, or use String[]
+  
+  // Dates and References
+  firstOrderDate        DateTime?
+  firstOrderName        String?
+  lastOrderDate         DateTime?
+  lastOrderName         String?
+  
+  // Advanced Predictions
+  avgOrderGapDays       Float?      // Average days between orders
+  nextPurchaseDate      DateTime?   // Predicted date for next purchase
+  purchaseProbability   Float?      // 0-100 probability score
+  
+  // Address Info
+  city                  String?
+  province              String?
+  zip                   String?
+  country               String?
+  address1              String?
+  address2              String?
+
+  // Relationships
+  orders                Order[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([storeId, shopifyCustomerId])
+  @@index([storeId, totalSpent])
+  @@index([storeId, segment])
+  @@index([storeId, email]) // Requested index
+  @@index([storeId, lastOrderDate]) // Requested index used for Recency calculations
+}
+
+// Product model
+model Product {
+  id                    String    @id @default(uuid())
+  storeId               String
+  store                 Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  shopifyProductId      String
+  title                 String
+  vendor                String?
+  productType           String?
+  
+  // Performance metrics
+  totalSold             Int       @default(0)
+  totalRevenue          Float     @default(0)
+  totalCancelled        Int       @default(0)
+  cancellationRate      Float     @default(0)
+  
+  // Relationships
+  lineItems             OrderLineItem[]
+  collections           ProductCollection[]
+  variants              ProductVariant[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([storeId, shopifyProductId])
+  @@index([storeId, totalRevenue])
+  @@index([storeId, cancellationRate])
+  @@index([storeId, productType])
+}
+
+// Product Variant model - Added for SKU and Cost precision per variant
+model ProductVariant {
+  id                String   @id @default(uuid())
+  storeId           String
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  shopifyVariantId  String
+  inventoryItemId   String?
+  sku               String?
+  title             String?
+  
+  price             Float?
+  compareAtPrice    Float?
+  cost              Float?
+  inventoryQuantity Int      @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([storeId, shopifyVariantId])
+  @@index([productId])
+  @@index([sku])
+}
+
+// Collection model
+model Collection {
+  id                String   @id @default(uuid())
+  storeId           String
+  store             Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  shopifyCollectionId String
+  title             String
+  handle            String?
+  
+  products          ProductCollection[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([storeId, shopifyCollectionId])
+  @@index([storeId, title])
+}
+
+// Junction model for Product-Collection membership
+model ProductCollection {
+  productId         String
+  product           Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  collectionId      String
+  collection        Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  
+  @@id([productId, collectionId])
+  @@index([collectionId])
+  @@index([productId])
+}
+
+// Sync jobs for tracking data synchronization
+model SyncJob {
+  id                String    @id @default(uuid())
+  storeId           String
+  store             Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  jobType           String    // orders, customers, products, full
+  status            String    // pending, running, completed, failed
+  
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  
+  recordsProcessed  Int       @default(0)
+  recordsFailed     Int       @default(0)
+  
+  errorMessage      String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([storeId, status])
+  @@index([jobType])
+}
+
+// Alerts for anomaly detection
+model Alert {
+  id                String    @id @default(uuid())
+  storeId           String
+  store             Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  alertType         String    // cancellation_spike, sales_drop, refund_spike, low_repeat_rate
+  severity          String    // info, warning, critical
+  
+  title             String
+  message           String
+  
+  isRead            Boolean   @default(false)
+  isDismissed       Boolean   @default(false)
+  
+  metadata          Json?     // Additional data about the alert
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([storeId, isRead])
+  @@index([storeId, severity])
+}
+
+// Scheduled reports
+model Report {
+  id                String    @id @default(uuid())
+  storeId           String
+  store             Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  reportType        String    // sales, orders, customers, products, full
+  frequency         String    // daily, weekly, monthly
+  
+  format            String    // csv, excel, pdf
+  
+  lastSentAt        DateTime?
+  nextScheduledAt   DateTime?
+  
+  isActive          Boolean   @default(true)
+  
+  recipients        String[]  @default([])
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([storeId, isActive])
+  @@index([nextScheduledAt])
+}
+
+// -------------------------------------------------------------
+// NEW: Analytics Cache for High Performance Dashboards
+// -------------------------------------------------------------
+model AnalyticsCache {
+  id                String   @id @default(uuid())
+  storeId           String
+  store             Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  cacheKey          String   // e.g., "dashboard:metrics:last_30_days"
+  data              Json     // The cached result
+  
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([storeId, cacheKey])
+  @@index([storeId, expiresAt])
+}
+
+// -------------------------------------------------------------
+// UPDATED: Optimized Indexes & Store Scoping
+// -------------------------------------------------------------
+
+// Add storeId to Line Items for Partitioning Support
+// (Modifying OrderLineItem from original schema above)

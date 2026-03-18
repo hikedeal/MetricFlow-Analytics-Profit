@@ -1,0 +1,58 @@
+services:
+  # Backend Service
+  - type: web
+    name: adynic-backend
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: adynic-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: adynic-redis
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: SHOPIFY_API_KEY
+        sync: false
+      - key: SHOPIFY_API_SECRET
+        sync: false
+      - key: SCOPES
+        value: write_products,read_products,read_orders,read_customers
+      - key: ADMIN_SECRET
+        sync: false
+    autoDeploy: true
+
+  # Background Worker (for BullMQ)
+  - type: worker
+    name: adynic-worker
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: adynic-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: adynic-redis
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: adynic-db
+    plan: starter
+    databaseName: adynic_db
+    user: adynic_user
+
+  - name: adynic-redis
+    plan: starter
