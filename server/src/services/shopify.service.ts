@@ -226,26 +226,23 @@ export class ShopifyService {
                 }
             `;
 
-            const response: any = await client.query({
-                data: {
-                    query,
-                    variables: {
-                        first: limit,
-                        after: cursor
-                    }
+            const response: any = await client.request(query, {
+                variables: {
+                    first: limit,
+                    after: cursor
                 }
             });
 
-            if (response.body.errors) {
-                const errorMsg = response.body.errors[0]?.message || 'Unknown GraphQL error';
-                logger.error(`Shopify GraphQL error for ${shop}: ${errorMsg}`, JSON.stringify(response.body.errors, null, 2));
+            if (response.errors) {
+                const errorMsg = response.errors[0]?.message || 'Unknown GraphQL error';
+                logger.error(`Shopify GraphQL error for ${shop}: ${errorMsg}`, JSON.stringify(response.errors, null, 2));
                 console.error(`Shopify GraphQL error: ${errorMsg}`);
                 throw new Error(`Shopify GraphQL error: ${errorMsg}`);
             }
 
-            const data = response.body.data;
+            const data = response.data;
             if (!data || !data.customers) {
-                logger.error(`No data returned from Shopify GraphQL for ${shop}. Response:`, JSON.stringify(response.body, null, 2));
+                logger.error(`No data returned from Shopify GraphQL for ${shop}. Response:`, JSON.stringify(response, null, 2));
                 return { customers: [], pageInfo: { hasNextPage: false } };
             }
 
@@ -312,16 +309,14 @@ export class ShopifyService {
                 } as any,
             });
 
-            const [orderRes, productRes, customerRes]: any[] = await Promise.all([
-                client.get({ path: 'orders/count', query: { status: 'any' } }),
-                client.get({ path: 'products/count', query: { status: 'any' } }),
-                client.get({ path: 'customers/count' }),
+            const [orderRes]: any[] = await Promise.all([
+                client.get({ path: 'orders/count', query: { status: 'any' } })
             ]);
 
             return {
                 orders: orderRes.body.count,
-                products: productRes.body.count,
-                customers: customerRes.body.count,
+                products: 0,
+                customers: 0,
                 storageChecked: true, // Marker for health check
             };
         } catch (error) {
@@ -525,18 +520,15 @@ export class ShopifyService {
                 }
             `;
 
-            const response: any = await client.query({
-                data: {
-                    query,
-                    variables: {
-                        first: limit,
-                        after: cursor
-                    }
+            const response: any = await client.request(query, {
+                variables: {
+                    first: limit,
+                    after: cursor
                 }
             });
 
             // Reformat to match REST structure as closely as possible for easier ingestion
-            const edges = response.body.data.orders.edges;
+            const edges = response.data.orders.edges;
             const orders = edges.map((edge: any) => {
                 const node = edge.node;
                 return {
@@ -594,7 +586,7 @@ export class ShopifyService {
 
             return {
                 orders,
-                pageInfo: response.body.data.orders.pageInfo
+                pageInfo: response.data.orders.pageInfo
             };
         }, shop, 'fetchOrdersGraphQL');
     }
@@ -659,17 +651,14 @@ export class ShopifyService {
                 }
             `;
 
-            const response: any = await client.query({
-                data: {
-                    query,
-                    variables: {
-                        first: limit,
-                        after: cursor
-                    }
+            const response: any = await client.request(query, {
+                variables: {
+                    first: limit,
+                    after: cursor
                 }
             });
 
-            const edges = response.body.data.products.edges;
+            const edges = response.data.products.edges;
             const products = edges.map((edge: any) => {
                 const node = edge.node;
                 return {
@@ -698,7 +687,7 @@ export class ShopifyService {
 
             return {
                 products,
-                pageInfo: response.body.data.products.pageInfo
+                pageInfo: response.data.products.pageInfo
             };
         }, shop, 'fetchProductsGraphQL');
     }
