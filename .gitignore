@@ -28,3 +28,14 @@ client/.env
 # Prisma
 server/prisma/*.db
 server/prisma/*.db-journal
+
+# Admin scripts
+server/src/update_*.ts
+server/src/add_new_store.ts
+server/src/update_registry.ts
+
+# Admin scripts
+server/src/update_*.ts
+server/src/add_new_store.ts
+server/src/update_registry.ts
+

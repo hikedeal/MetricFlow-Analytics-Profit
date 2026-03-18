@@ -58,7 +58,7 @@ async function main() {
             // 3. Re-register using our standard service
             logger.info(`📦 Re-registering fresh webhooks for ${store.shopifyDomain}...`);
             try {
-                await WebhookRegistrationService.registerWebhooks(store.shopifyDomain, store.accessToken);
+                await WebhookRegistrationService.registerWebhooks(store.shopifyDomain, store.accessToken, shopify);
                 logger.info(`✅ Successfully registered webhooks for ${store.shopifyDomain}`);
             } catch (regErr) {
                 logger.error(`❌ Failed to register webhooks for ${store.shopifyDomain}:`, regErr);

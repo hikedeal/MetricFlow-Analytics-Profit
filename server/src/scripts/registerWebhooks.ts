@@ -5,6 +5,7 @@ import path from 'path';
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 import prisma from '../config/prisma';
+import { shopify } from '../config/shopify';
 import { WebhookRegistrationService } from '../services/webhook_registration.service';
 import { logger } from '../config/logger';
 
@@ -34,7 +35,7 @@ async function main() {
 
             logger.info(`📦 Registering webhooks for ${store.shopifyDomain}...`);
             try {
-                await WebhookRegistrationService.registerWebhooks(store.shopifyDomain, store.accessToken);
+                await WebhookRegistrationService.registerWebhooks(store.shopifyDomain, store.accessToken, shopify);
                 logger.info(`✅ Successfully updated webhooks for ${store.shopifyDomain}`);
             } catch (error) {
                 logger.error(`❌ Failed to register webhooks for ${store.shopifyDomain}:`, error);
