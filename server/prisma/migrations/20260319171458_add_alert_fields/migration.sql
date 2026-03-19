@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "StoreSettings" ADD COLUMN     "alertMargin" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "alertRoas" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "marginThreshold" DOUBLE PRECISION NOT NULL DEFAULT 15,
+ADD COLUMN     "roasThreshold" DOUBLE PRECISION NOT NULL DEFAULT 2.5;
