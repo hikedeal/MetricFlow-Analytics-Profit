@@ -28,7 +28,7 @@ async function init() {
         shop = sessionStorage.getItem('shopify_shop') || '';
     }
 
-    let apiKey = import.meta.env.VITE_SHOPIFY_API_KEY || '7cd6858cd34ee26392bc69168246e7f8';
+    let apiKey = import.meta.env.VITE_SHOPIFY_API_KEY || 'ee1ea740b161b721656d0233577f6c3c';
 
     // Fetch dynamic config removed because we are using a single client ID.
 
