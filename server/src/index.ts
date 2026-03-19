@@ -173,23 +173,23 @@ app.use('/api/segments', authenticate, segmentRoutes);
 import { adminRoutes } from './routes/admin.routes';
 app.use('/api/admin', adminRoutes);
 
-// Serve frontend in development - Proxy all other requests to Vite
-if (process.env.NODE_ENV === 'development') {
+// Serve frontend in production or if build exists
+const clientBuildPath = path.join(__dirname, '../../client/dist');
+const isDev = process.env.NODE_ENV === 'development';
+
+if (isDev && process.env.VITE_DEV_PROXY === 'true') {
+    // Only proxy to Vite in local development if specifically requested
     app.use('/', createProxyMiddleware({
         target: 'http://localhost:3000',
         changeOrigin: true,
-        ws: true, // proxy websockets for Vite HMR
-        pathFilter: (path) => {
-            // Only proxy if it's NOT an API route or health check
-            return !path.startsWith('/api') && !path.startsWith('/health');
-        },
+        ws: true,
+        pathFilter: (path) => !path.startsWith('/api') && !path.startsWith('/health'),
     }));
 } else {
-    // Serve frontend in production
-    const clientBuildPath = path.join(__dirname, '../../client/dist');
+    // Serve static files in production or development on VPS
     app.use(express.static(clientBuildPath));
 
-    // Handle React routing, return all requests to React app
+    // Handle React routing
     app.get('*', (req, res) => {
         if (!req.path.startsWith('/api')) {
             res.sendFile(path.join(clientBuildPath, 'index.html'));
