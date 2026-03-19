@@ -40,7 +40,7 @@ import { initializeRedis } from './services/redis.service';
 import { initializeBackgroundJobs } from './jobs';
 
 const app: Application = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 
 // Trust proxy for ngrok/forwarding
 app.set('trust proxy', true);
