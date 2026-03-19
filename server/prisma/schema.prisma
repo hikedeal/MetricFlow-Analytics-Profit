@@ -103,6 +103,10 @@ model StoreSettings {
   alertSalesDrop          Boolean  @default(true)
   alertRefundSpike        Boolean  @default(true)
   alertInventoryLow       Boolean  @default(true)
+  alertRoas               Boolean  @default(false)
+  alertMargin             Boolean  @default(false)
+  roasThreshold           Float    @default(2.5)
+  marginThreshold         Float    @default(15)
   
   // Data Sync
   syncFrequency           String   @default("manual")

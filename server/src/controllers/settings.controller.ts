@@ -109,7 +109,9 @@ export class SettingsController {
                 'enableAlerts', 'cancellationThreshold', 'refundThreshold', 'alertCancellationSpike',
                 'alertSalesDrop', 'alertRefundSpike', 'alertInventoryLow', 'syncFrequency', 'vipThreshold',
                 'churnDays', 'multiCurrency', 'taxIncluded', 'taxRate', 'enableScheduledReports',
-                'reportFrequency', 'reportEmail', 'autoExport', 'theme', 'defaultDateRange'
+                'reportFrequency', 'reportEmail', 'autoExport', 'theme', 'defaultDateRange',
+                'facebookSpend', 'googleAdsSpend', 'instagramSpend', 'tiktokSpend', 'emailMarketingSpend',
+                'alertRoas', 'alertMargin', 'roasThreshold', 'marginThreshold'
             ];
 
             schemaFields.forEach(field => {
