@@ -114,11 +114,27 @@ export class SettingsController {
                 'alertRoas', 'alertMargin', 'roasThreshold', 'marginThreshold'
             ];
 
+            const floatFields = [
+                'defaultShippingCost', 'defaultPackagingCost', 'defaultCogsPercentage', 'codExtraCharge', 'paymentGatewayFee',
+                'returnCost', 'rtoCost', 'marketingCost', 'agencyFee', 'shopifyBillingCost', 'miscCost',
+                'facebookSpend', 'googleAdsSpend', 'instagramSpend', 'tiktokSpend', 'emailMarketingSpend',
+                'cancellationThreshold', 'refundThreshold', 'roasThreshold', 'marginThreshold', 'vipThreshold', 'taxRate'
+            ];
+
+            const intFields = ['churnDays'];
+
             console.log(`[SettingsUpdate] Store: ${storeId}, Received keys: ${Object.keys(settingsData).join(', ')}`);
             
             schemaFields.forEach(field => {
-                if (settingsData[field] !== undefined) {
-                    validFields[field] = settingsData[field];
+                const value = settingsData[field];
+                if (value !== undefined) {
+                    if (floatFields.includes(field)) {
+                        validFields[field] = parseFloat(value) || 0;
+                    } else if (intFields.includes(field)) {
+                        validFields[field] = parseInt(value, 10) || 0;
+                    } else {
+                        validFields[field] = value;
+                    }
                 }
             });
 
