@@ -232,7 +232,7 @@ async function startServer() {
         }
 
         // Start server
-        server.listen(Number(PORT), () => {
+        server.listen(Number(PORT), '0.0.0.0', () => {
             logger.info(`🚀 Adynic Performance Server running on port ${PORT}`);
             logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
             logger.info(`🔗 API URL: http://localhost:${PORT}`);
