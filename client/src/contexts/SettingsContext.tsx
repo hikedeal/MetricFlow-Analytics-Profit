@@ -39,7 +39,6 @@ export interface StoreSettings {
     theme: string;
     defaultDateRange: string;
     currency: string;
-    refreshFreq: string;
     [key: string]: any;
 }
 
@@ -80,8 +79,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
     autoExport: false,
     theme: 'light',
     defaultDateRange: 'last_30_days',
-    currency: 'USD',
-    refreshFreq: 'manual'
+    currency: 'USD'
 };
 
 interface SettingsContextType {

@@ -114,11 +114,15 @@ export class SettingsController {
                 'alertRoas', 'alertMargin', 'roasThreshold', 'marginThreshold'
             ];
 
+            console.log(`[SettingsUpdate] Store: ${storeId}, Received keys: ${Object.keys(settingsData).join(', ')}`);
+            
             schemaFields.forEach(field => {
                 if (settingsData[field] !== undefined) {
                     validFields[field] = settingsData[field];
                 }
             });
+
+            console.log(`[SettingsUpdate] Valid fields: ${Object.keys(validFields).join(', ')}`);
 
             // 5. Update StoreSettings
             const settings = await prisma.storeSettings.upsert({
@@ -136,6 +140,7 @@ export class SettingsController {
             });
 
             // 6. Invalidate Dashboard Cache
+            console.log(`[SettingsUpdate] Success for ${storeId}, flushing cache...`);
             // We flush all dashboard metrics for this store to ensure cost settings are reflected immediately
             await RedisService.flushPattern(`dashboard:*:${storeId}:*`);
             await RedisService.flushPattern(`sales_intelligence:${storeId}:*`);

@@ -17,7 +17,7 @@ export function GeneralSettings() {
         if (!loading) {
             setDashboardRange(settings.defaultDateRange || 'last_30_days');
             setCurrency((settings as any).currency || 'USD');
-            setRefreshFreq((settings as any).refreshFreq || 'manual');
+            setRefreshFreq(settings.syncFrequency || 'manual');
             setTaxIncluded(settings.taxIncluded);
             setTaxRate(settings.taxRate.toString());
         }
@@ -28,8 +28,8 @@ export function GeneralSettings() {
             defaultDateRange: dashboardRange,
             taxIncluded,
             taxRate: parseFloat(taxRate) || 0,
-            ['currency' as any]: currency,
-            ['refreshFreq' as any]: refreshFreq
+            currency,
+            syncFrequency: refreshFreq
         });
     };
 
